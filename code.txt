@@ -1,0 +1,418 @@
+#include <Keypad.h>
+#include <LiquidCrystal.h>
+#include<SoftwareSerial.h>
+LiquidCrystal lcd(8,9,10,11,12,13);
+SoftwareSerial esp(4,3);
+//**************************************************
+
+#define IP "184.106.153.149"// thingspeak.com ip
+String Api_key = "GET /update?key=0T4WG63QDMTWEZ0I"; //change it with your api key like "GET /update?key=Your Api Key"
+       
+ int err;
+ 
+ long writingTimer =30; //server response time in sec
+ long startTime = 0;
+ long waitTime = 0;
+
+//*********************************************************
+long duration, distance, cm, Sensor1, Sensor2, Sensor3, sd;
+long t = 0, h = 0, hp = 0;
+
+#define trigPin1 6
+#define echoPin1 5
+//*********************************
+const byte ROWS = 4; //four rows
+const byte COLS = 3; //four columns
+char keys[ROWS][COLS] = {
+ /* {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+  */
+  {'1','2','3'},
+  {'4','5','6'},
+  {'7','8','9'},
+  {'*','0','#'}
+  
+};
+
+
+//byte rowPins[ROWS] = {A0, A1, A2, A3}; //R1
+//byte  colPins[COLS]= {A4, A5, 4}; //c1
+byte rowPins[ROWS] = {2, A5, A4, A3}; //R1
+
+byte  colPins[COLS]= {A2, A1, A0}; //c1
+
+Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
+int s1=0;
+long Num1,Num2,Number;
+ char key,action;
+ boolean result = false;
+long val=0;
+char tag[] ="4C00A7B78CD0"; // Replace with your Tag ID
+char tag1[] ="4C00AB56B203";
+
+char input[12];        
+int count = 0;      
+ int relay=7; 
+boolean match = 0;      // A variable to store the Tag match status
+
+
+void setup()
+{
+   pinMode(trigPin1, OUTPUT);
+  pinMode(echoPin1, INPUT);
+
+  pinMode(relay,OUTPUT);
+ lcd.print("Smart Petrol ");
+lcd.setCursor(0,1);
+lcd.print(" PUMP ");
+  delay(1000);
+  lcd.clear();
+ lcd.print("Project By-Kunal");
+lcd.setCursor(0,1);
+lcd.print("Rushi,balaji");
+delay(1000);
+lcd.clear();
+
+  digitalWrite(relay,LOW); 
+}
+  
+void loop(){
+
+key = kpd.getKey();
+  
+DisplayResult();
+
+
+ SonarSensor(trigPin1, echoPin1);
+  Sensor1 = hp;
+
+  if (Sensor1 > 100) {
+    sd = 100;
+  }
+  else if (Sensor1 < 0) {
+    sd = 0;
+  }
+  else {
+    sd = Sensor1;
+  }
+
+err=0;
+waitTime = millis()-startTime;  
+ if (waitTime > (writingTimer*1000)) 
+ {
+  updatedata();        
+    startTime = millis();    
+  } 
+
+
+  
+}
+
+void SonarSensor(int trigPin, int echoPin)
+{
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration / 2) / 29.1;
+  cm = distance - 2; // offset correction
+  cm = 25 - cm;  // water height, 0 - 50 cm
+
+  hp = 4 * cm; // distance in %, 0-100 %
+
+  delay(100);
+}
+
+
+ void DetectButtons()
+{ 
+     lcd.clear(); //Then clean it
+    if (key=='*') //If cancel Button is pressed
+    {Serial.println ("Button Cancel"); Number=Num1=Num2=0; result=false;}
+    
+     if (key == '1') //If Button 1 is pressed
+    {Serial.println ("Button 1"); 
+    if (Number==0)
+    Number=1;
+    else
+    Number = (Number*10) + 1; //Pressed twice
+    }
+    
+     if (key == '4') //If Button 4 is pressed
+    {Serial.println ("Button 4"); 
+    if (Number==0)
+    Number=4;
+    else
+    Number = (Number*10) + 4; //Pressed twice
+    }
+    
+     if (key == '7') //If Button 7 is pressed
+    {Serial.println ("Button 7");
+    if (Number==0)
+    Number=7;
+    else
+    Number = (Number*10) + 7; //Pressed twice
+    } 
+   if (key == '0')
+    {Serial.println ("Button 0"); //Button 0 is Pressed
+    if (Number==0)
+    Number=0;
+    else
+    Number = (Number*10) + 0; //Pressed twice
+    }
+    
+     if (key == '2') //Button 2 is Pressed
+    {Serial.println ("Button 2"); 
+     if (Number==0)
+    Number=2;
+    else
+    Number = (Number*10) + 2; //Pressed twice
+    }
+    
+     if (key == '5')
+    {Serial.println ("Button 5"); 
+     if (Number==0)
+    Number=5;
+    else
+    Number = (Number*10) + 5; //Pressed twice
+    }
+    
+     if (key == '8')
+    {Serial.println ("Button 8"); 
+     if (Number==0)
+    Number=8;
+    else
+    Number = (Number*10) + 8; //Pressed twice
+    }   
+    
+
+    if (key == '#')
+    {Serial.println ("Button Equal"); 
+    Num2=Number;
+    result = true;
+    }
+    
+     if (key == '3')
+    {Serial.println ("Button 3"); 
+     if (Number==0)
+    Number=3;
+    else
+    Number = (Number*10) + 3; //Pressed twice
+    }
+    
+     if (key == '6')
+    {Serial.println ("Button 6"); 
+    if (Number==0)
+    Number=6;
+    else
+    Number = (Number*10) + 6; //Pressed twice
+    }
+    
+     if (key == '9')
+    {Serial.println ("Button 9");
+    if (Number==0)
+    Number=9;
+    else
+    Number = (Number*10) + 9; //Pressed twice
+    }  
+
+}
+void DisplayResult()
+{
+  lcd.setCursor(0, 0);   // set the cursor to column 0, line 1
+  lcd.print("Show Card"); 
+  
+  //lcd.print(action); lcd.print(Num2); 
+ 
+}
+void rfid ()
+{
+
+
+  
+if(Serial.available())
+  
+  {        
+   
+    
+ // digitalWrite(Ready,LOW);
+  
+    count = 0;
+
+    while(Serial.available() && count < 12) 
+    
+    {
+    
+      input[count] = Serial.read();
+
+
+      count++; 
+
+     
+      delay(5);
+
+    }
+
+    if(count == 12) // 
+    {
+    
+      count =0; // reset counter varibale to 0
+      match = 1;
+      /* Iterate through each value and compare till either the 12 values are 
+         all matching or till the first mistmatch occurs */
+
+
+      while(count<12 && match !=0)  
+      {
+        
+    if(input[count]==tag[count]||input[count]==tag1[count])
+     
+     { 
+          match = 1; // everytime the values match, we set the match variable to 1
+        s1=1;
+     }
+        else
+        match= 0; 
+        
+        /* if the ID values don't match, set match variable to 0 and 
+                     stop comparing by exiting the while loop */
+                   
+        count++; // increment i
+        
+      } 
+      
+    }
+    Serial.println(s1);
+    delay(1000);
+   lcd.clear();
+    lcd.print("Welcome");
+    if(match == 1) // If match variable is 1, then it means the tags match
+    {lcd.clear();
+    while(1)
+    {
+      Serial.println("Access OK");
+      
+    key = kpd.getKey();
+    lcd.setCursor(0,0);
+    lcd.print("Enter Amount");
+    lcd.setCursor(0,1);
+    lcd.print(Number);
+              if (key!=NO_KEY)
+            DetectButtons();
+             
+       if (result==true)
+       
+       
+    }
+    }
+    else
+    {   
+        Serial.println("Access Denied"); // Incorrect Tag Message
+       
+       lcd.clear();
+    lcd.print("Invalid Card");
+    delay(800);
+    lcd.clear();
+     }
+     
+    for(count=0; count<12; count++) 
+    {
+      input[count]= 'F';
+    }
+    count = 0; // Reset counter variable
+  }
+  }
+ void CalculateResult()
+ {
+
+  // ptrl rate 110
+  
+  int ct=Number*9.1;
+ 
+for(int i=0;i<=ct;i++)
+  {    
+   // ct--;
+    digitalWrite(relay,HIGH);
+    delay(10);
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Fuel Filling....");
+    lcd.setCursor(0,1);
+    lcd.print(i);
+    lcd.setCursor(4,1);
+    lcd.print("ml");
+    delay(25);
+    }
+    lcd.clear();
+    digitalWrite(relay,LOW);
+   
+  lcd.print("Process Complete");
+
+  
+  lcd.clear();
+  result=false;
+
+  Number=0;
+  return(0);
+  }
+
+
+   
+//r=50;
+
+/*
+void count() {
+  objects++;
+}*/
+
+
+void updatedata(){ 
+ // lcd.print("updating");
+ // delay(500);
+ 
+  
+  String command = "AT+CIPSTART=\"TCP\",\"";
+  command += IP;
+  command += "\",80";
+ // Serial.println(command);
+  esp.println(command);
+  delay(500);
+  if(esp.find("err")){
+    return;    
+  }
+  
+  command = Api_key ;
+  command += "&field1=";   
+  command += sd;
+  
+ 
+  command += "\r\n";
+ // esp.print("AT+CIPSEND=");
+  esp.print("AT+CIPSEND=");
+ // Serial.println(command.length());
+  esp.println(command.length());
+ 
+  }
+
+String send_command(String command, const int timeout, boolean debug)
+{
+  String response = "";
+  esp.print(command);
+  long int time = millis();
+  while ( (time + timeout) > millis())
+  {
+    while (esp.available())
+    {
+     
+    }
+  }
+  if (debug)
+  {
+    esp.print(response);
+  }
+  return response;
+}
